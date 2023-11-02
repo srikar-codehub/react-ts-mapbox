@@ -1,12 +1,7 @@
 import { Feature, Geometry, GeoJsonProperties } from "geojson";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Map, { Marker, Source, Layer } from "react-map-gl";
-
-type LineType = {
-  latitude: number;
-  longitude: number;
-};
 
 type GeoJsonPointFeature = {
   type: "Feature";
@@ -43,10 +38,14 @@ const MapComponent: React.FC = () => {
     latitude: 20.583044348815818,
     zoom: 14,
   });
+
+  const [startEndPoint, setStartEndPoint] = useState<number[][]>([]);
   const [geoJsonPointData, setGeoJsonPointData] = useState<
     GeoJsonPointFeature[]
   >([]);
-  const [line, setLine] = useState<LineType[]>([]);
+  const [geoJsonLineData, setGeoJsonLineData] = useState<GeoJsonLineFeature[]>(
+    []
+  );
   const [isPlacingMarker, setIsPlacingMarker] = useState(false);
   const [isDrawingLine, setIsDrawingLine] = useState(false);
 
@@ -68,7 +67,28 @@ const MapComponent: React.FC = () => {
       ]);
     }
     if (isDrawingLine) {
-      console.log(e.lngLat);
+      if (startEndPoint.length !== 2) {
+        startEndPoint.push(Object.values(e.lngLat));
+      }
+
+      if (startEndPoint.length === 2) {
+        setGeoJsonLineData((geoJsonLineData) => [
+          ...geoJsonLineData,
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              coordinates: [
+                [startEndPoint[0][0], startEndPoint[0][1]],
+                [startEndPoint[1][0], startEndPoint[1][1]],
+              ],
+              type: "LineString",
+            },
+          },
+        ]);
+
+        setStartEndPoint([]);
+      }
     }
   };
   return (
@@ -106,6 +126,7 @@ const MapComponent: React.FC = () => {
           if (isPlacingMarker) {
             setIsPlacingMarker(!isPlacingMarker);
           }
+          setStartEndPoint([]);
 
           setIsDrawingLine(!isDrawingLine);
         }}
@@ -131,6 +152,28 @@ const MapComponent: React.FC = () => {
                 longitude={element.geometry.coordinates[1]}
                 color="red"
               ></Marker>
+            );
+          })}
+        {geoJsonLineData[0] &&
+          geoJsonLineData.map((element, index) => {
+            console.log(element);
+            return (
+              <Source key={index} type="geojson" data={element}>
+                <Layer
+                  key={index}
+                  id={`line-layer-${index}`}
+                  type="line"
+                  layout={{
+                    "line-cap": "round",
+                    "line-join": "round",
+                  }}
+                  paint={{
+                    "line-color": "#ff0000",
+                    "line-width": 2,
+                    "line-dasharray": [1, 2],
+                  }}
+                />
+              </Source>
             );
           })}
         <Source type="geojson" data={geoJsonLine}>
