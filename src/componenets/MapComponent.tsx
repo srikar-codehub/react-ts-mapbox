@@ -1,8 +1,9 @@
-import { Feature, Geometry, GeoJsonProperties } from "geojson";
+// import { Feature, Geometry, GeoJsonProperties } from "geojson";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Map, { Marker, Source, Layer } from "react-map-gl";
 
+//Point///////////////////////
 type GeoJsonPointFeature = {
   type: "Feature";
   properties: object;
@@ -11,6 +12,7 @@ type GeoJsonPointFeature = {
     type: "Point";
   };
 };
+///line//////////////////
 type GeoJsonLineFeature = {
   type: "Feature";
   properties: object;
@@ -19,7 +21,20 @@ type GeoJsonLineFeature = {
     type: "LineString";
   };
 };
+/////CIRCLE TYPE//////////
 
+type GeoJsonCircleFeature = {
+  type: "Feature";
+  properties: {
+    radius: number;
+  };
+  geometry: {
+    coordinates: [number, number];
+    type: "Point";
+  };
+};
+
+////start component ///////////////////////////////////////
 const MapComponent: React.FC = () => {
   const [viewPort, setViewPort] = useState({
     longitude: 76.47546738176874,
@@ -27,6 +42,7 @@ const MapComponent: React.FC = () => {
     zoom: 14,
   });
 
+  //GEO json value states//////////////////
   const [startEndPoint, setStartEndPoint] = useState<number[][]>([]);
   const [geoJsonPointData, setGeoJsonPointData] = useState<
     GeoJsonPointFeature[]
@@ -34,13 +50,24 @@ const MapComponent: React.FC = () => {
   const [geoJsonLineData, setGeoJsonLineData] = useState<GeoJsonLineFeature[]>(
     []
   );
+  const [geoJsonCircleData, setGeoJsonCircleData] = useState<
+    GeoJsonCircleFeature[]
+  >([]);
+
+  /////BUTTON STATES//////////////////
   const [isPlacingMarker, setIsPlacingMarker] = useState(false);
   const [isDrawingLine, setIsDrawingLine] = useState(false);
+  const [isDrawingCircle, setIsDrawingCircle] = useState(false);
+
+  //HANDLE ALL CLICK EVENTS IN MAP ////////////
 
   const handleMapClick = (e: any) => {
-    if (!isPlacingMarker && !isDrawingLine) return;
+    if (!isPlacingMarker && !isDrawingLine && !isDrawingCircle) return;
+
     const latitude = e.lngLat.lat;
     const longitude = e.lngLat.lng;
+
+    /////point event//////////
     if (isPlacingMarker) {
       setGeoJsonPointData((geoJsonPointData) => [
         ...geoJsonPointData,
@@ -54,6 +81,7 @@ const MapComponent: React.FC = () => {
         },
       ]);
     }
+    ///////line event/////////////////
     if (isDrawingLine) {
       if (startEndPoint.length !== 2) {
         startEndPoint.push(Object.values(e.lngLat));
@@ -78,9 +106,38 @@ const MapComponent: React.FC = () => {
         setStartEndPoint([]);
       }
     }
+    //////CIRCLE EVENT /////////////////////
+    if (isDrawingCircle) {
+      if (startEndPoint.length !== 2) {
+        startEndPoint.push(Object.values(e.lngLat));
+      }
+
+      if (startEndPoint.length === 2) {
+        const radius = Math.sqrt(
+          Math.pow(startEndPoint[1][0] - startEndPoint[0][0], 2) +
+            Math.pow(startEndPoint[1][1] - startEndPoint[0][1], 2)
+        );
+        setGeoJsonCircleData((geoJsonCircleData) => [
+          ...geoJsonCircleData,
+          {
+            type: "Feature",
+            properties: {
+              radius: radius,
+            },
+            geometry: {
+              coordinates: [startEndPoint[0][0], startEndPoint[0][1]],
+              type: "Point",
+            },
+          },
+        ]);
+
+        setStartEndPoint([]);
+      }
+    }
   };
   return (
     <div style={{ position: "relative" }}>
+      {/* point Button.......................... */}
       <button
         style={{
           position: "absolute",
@@ -95,11 +152,15 @@ const MapComponent: React.FC = () => {
           if (isDrawingLine) {
             setIsDrawingLine(!isDrawingLine);
           }
+          if (isDrawingCircle) {
+            setIsDrawingCircle(!isDrawingCircle);
+          }
           setIsPlacingMarker(!isPlacingMarker);
         }}
       >
         Marker {isPlacingMarker ? "on" : "off"}
       </button>
+      {/* LINE BUTTON......................... */}
       <button
         style={{
           position: "absolute",
@@ -114,6 +175,9 @@ const MapComponent: React.FC = () => {
           if (isPlacingMarker) {
             setIsPlacingMarker(!isPlacingMarker);
           }
+          if (isDrawingCircle) {
+            setIsDrawingCircle(!isDrawingCircle);
+          }
           setStartEndPoint([]);
 
           setIsDrawingLine(!isDrawingLine);
@@ -121,6 +185,7 @@ const MapComponent: React.FC = () => {
       >
         Line {isDrawingLine ? "on" : "off"}
       </button>
+      {/* CIRCLE BUTTON......................... */}
       <button
         style={{
           position: "absolute",
@@ -132,13 +197,39 @@ const MapComponent: React.FC = () => {
           borderRadius: "8px",
         }}
         onClick={() => {
+          if (isPlacingMarker) {
+            setIsPlacingMarker(!isPlacingMarker);
+          }
+          if (isDrawingLine) {
+            setIsDrawingLine(!isDrawingLine);
+          }
+          setStartEndPoint([]);
+          setIsDrawingCircle(!isDrawingCircle);
+        }}
+      >
+        Circle {isDrawingCircle ? "on" : "off"}
+      </button>
+      {/* clear geojson button.......................... */}
+      <button
+        style={{
+          position: "absolute",
+          top: "210px",
+          left: "10px",
+          zIndex: 1,
+          fontSize: "18px",
+          padding: "10px 20px",
+          borderRadius: "8px",
+        }}
+        onClick={() => {
           setGeoJsonPointData([]);
           setGeoJsonLineData([]);
+          setGeoJsonCircleData([]);
         }}
         disabled={geoJsonLineData || geoJsonPointData ? false : true}
       >
         Clear geoJson
       </button>
+      {/* Map intialize.................................... */}
       <Map
         {...viewPort}
         style={{ width: "100vw", height: "100vh" }}
@@ -149,6 +240,7 @@ const MapComponent: React.FC = () => {
         }}
         onClick={handleMapClick}
       >
+        {/* POINT geojson on map render .................................*/}
         {geoJsonPointData[0] &&
           geoJsonPointData.map((element, index) => {
             return (
@@ -160,9 +252,9 @@ const MapComponent: React.FC = () => {
               ></Marker>
             );
           })}
+        {/* LINE geojson on map render .................................*/}
         {geoJsonLineData[0] &&
           geoJsonLineData.map((element, index) => {
-            console.log(element);
             return (
               <Source key={index} type="geojson" data={element}>
                 <Layer
@@ -177,6 +269,24 @@ const MapComponent: React.FC = () => {
                     "line-color": "#ff0000",
                     "line-width": 2,
                     "line-dasharray": [1, 2],
+                  }}
+                />
+              </Source>
+            );
+          })}
+        {/* CIRCLE GEOJSON ON MAP RENDER.................. */}
+        {geoJsonCircleData[0] &&
+          geoJsonCircleData.map((element, index) => {
+            console.log(element);
+            return (
+              <Source key={index} type="geojson" data={element}>
+                <Layer
+                  key={index}
+                  id={`circle-layer-${index}`}
+                  type="circle"
+                  paint={{
+                    "circle-color": "#ff0000",
+                    "circle-radius": element.properties.radius,
                   }}
                 />
               </Source>
