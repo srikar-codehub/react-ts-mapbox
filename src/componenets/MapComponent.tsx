@@ -20,18 +20,6 @@ type GeoJsonLineFeature = {
   };
 };
 
-const geoJsonLine: Feature<Geometry> = {
-  type: "Feature",
-  properties: {},
-  geometry: {
-    type: "LineString",
-    coordinates: [
-      [76.47546738176874, 20.583044348815818],
-      [76.48756089289668, 20.520763374514644],
-    ],
-  },
-};
-
 const MapComponent: React.FC = () => {
   const [viewPort, setViewPort] = useState({
     longitude: 76.47546738176874,
@@ -133,6 +121,24 @@ const MapComponent: React.FC = () => {
       >
         Line {isDrawingLine ? "on" : "off"}
       </button>
+      <button
+        style={{
+          position: "absolute",
+          top: "140px",
+          left: "10px",
+          zIndex: 1,
+          fontSize: "18px",
+          padding: "10px 20px",
+          borderRadius: "8px",
+        }}
+        onClick={() => {
+          setGeoJsonPointData([]);
+          setGeoJsonLineData([]);
+        }}
+        disabled={geoJsonLineData || geoJsonPointData ? false : true}
+      >
+        Clear geoJson
+      </button>
       <Map
         {...viewPort}
         style={{ width: "100vw", height: "100vh" }}
@@ -176,21 +182,6 @@ const MapComponent: React.FC = () => {
               </Source>
             );
           })}
-        <Source type="geojson" data={geoJsonLine}>
-          <Layer
-            id="line-layer"
-            type="line"
-            layout={{
-              "line-cap": "round",
-              "line-join": "round",
-            }}
-            paint={{
-              "line-color": "#ff0000",
-              "line-width": 2,
-              "line-dasharray": [1, 2],
-            }}
-          />
-        </Source>
       </Map>
     </div>
   );
