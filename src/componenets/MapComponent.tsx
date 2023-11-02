@@ -1,14 +1,29 @@
 import { Feature, Geometry, GeoJsonProperties } from "geojson";
-import { relative } from "path";
+
 import React, { useState } from "react";
 import Map, { Marker, Source, Layer } from "react-map-gl";
-import { MapMouseEvent } from "react-map-gl/dist/esm/types";
 
 type MarkerType = {
   latitude: number;
   longitude: number;
 };
-const geojsonData: Feature<Geometry> = {
+type LineType = {
+  latitude: number;
+  longitude: number;
+};
+
+type GeoJsonPointFeature = {
+  type: "Feature";
+  properties: object;
+  geometry: {
+    coordinates: [number, number];
+    type: "Point";
+  };
+};
+
+let geoJsonPointData: GeoJsonPointFeature[] = [];
+
+const geoJsonLine: Feature<Geometry> = {
   type: "Feature",
   properties: {},
   geometry: {
@@ -27,16 +42,25 @@ const MapComponent: React.FC = () => {
     zoom: 14,
   });
   const [marker, setMarker] = useState<MarkerType[]>([]);
+  const [line, setLine] = useState<LineType[]>([]);
   const [isPlacingMarker, setIsPlacingMarker] = useState(false);
-  const handleMarkerClick = (e: any) => {
-    if (!isPlacingMarker) return;
-    setMarker((marker) => [
-      ...marker,
-      {
-        latitude: e.lngLat.lat,
-        longitude: e.lngLat.lng,
-      },
-    ]);
+  const [isDrawingLine, setIsDrawingLine] = useState(false);
+
+  const handleMapClick = (e: any) => {
+    if (!isPlacingMarker && !isDrawingLine) return;
+    if (isPlacingMarker) {
+      geoJsonPointData.push();
+      setMarker((marker) => [
+        ...marker,
+        {
+          latitude: e.lngLat.lat,
+          longitude: e.lngLat.lng,
+        },
+      ]);
+    }
+    if (isDrawingLine) {
+      console.log(e.lngLat);
+    }
   };
   return (
     <div style={{ position: "relative" }}>
@@ -51,11 +75,33 @@ const MapComponent: React.FC = () => {
           borderRadius: "8px",
         }}
         onClick={() => {
-          console.log(isPlacingMarker);
+          if (isDrawingLine) {
+            setIsDrawingLine(!isDrawingLine);
+          }
           setIsPlacingMarker(!isPlacingMarker);
         }}
       >
         Marker {isPlacingMarker ? "on" : "off"}
+      </button>
+      <button
+        style={{
+          position: "absolute",
+          top: "70px",
+          left: "10px",
+          zIndex: 1,
+          fontSize: "18px",
+          padding: "10px 20px",
+          borderRadius: "8px",
+        }}
+        onClick={() => {
+          if (isPlacingMarker) {
+            setIsPlacingMarker(!isPlacingMarker);
+          }
+
+          setIsDrawingLine(!isDrawingLine);
+        }}
+      >
+        Line {isDrawingLine ? "on" : "off"}
       </button>
       <Map
         {...viewPort}
@@ -65,7 +111,7 @@ const MapComponent: React.FC = () => {
         onMove={(e) => {
           setViewPort(e.viewState);
         }}
-        onClick={handleMarkerClick}
+        onClick={handleMapClick}
       >
         {marker[0] &&
           marker.map((coordinate, index) => {
@@ -78,7 +124,7 @@ const MapComponent: React.FC = () => {
               ></Marker>
             );
           })}
-        <Source type="geojson" data={geojsonData}>
+        <Source type="geojson" data={geoJsonLine}>
           <Layer
             id="line-layer"
             type="line"
@@ -88,7 +134,7 @@ const MapComponent: React.FC = () => {
             }}
             paint={{
               "line-color": "#ff0000",
-              "line-width": 4,
+              "line-width": 2,
               "line-dasharray": [1, 2],
             }}
           />
@@ -99,3 +145,20 @@ const MapComponent: React.FC = () => {
 };
 
 export default MapComponent;
+
+// {
+//   "type": "FeatureCollection",
+//   "features": [
+//     {
+//       "type": "Feature",
+//       "properties": {},
+//       "geometry": {
+//         "coordinates": [
+//           26.05097336785974,
+//           11.855898395071577
+//         ],
+//         "type": "Point"
+//       }
+//     }
+//   ]
+// }
