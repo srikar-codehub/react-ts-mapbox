@@ -3,10 +3,6 @@ import { Feature, Geometry, GeoJsonProperties } from "geojson";
 import React, { useState } from "react";
 import Map, { Marker, Source, Layer } from "react-map-gl";
 
-type MarkerType = {
-  latitude: number;
-  longitude: number;
-};
 type LineType = {
   latitude: number;
   longitude: number;
@@ -20,8 +16,14 @@ type GeoJsonPointFeature = {
     type: "Point";
   };
 };
-
-let geoJsonPointData: GeoJsonPointFeature[] = [];
+type GeoJsonLineFeature = {
+  type: "Feature";
+  properties: object;
+  geometry: {
+    coordinates: [[number, number], [number, number]];
+    type: "LineString";
+  };
+};
 
 const geoJsonLine: Feature<Geometry> = {
   type: "Feature",
@@ -41,20 +43,27 @@ const MapComponent: React.FC = () => {
     latitude: 20.583044348815818,
     zoom: 14,
   });
-  const [marker, setMarker] = useState<MarkerType[]>([]);
+  const [geoJsonPointData, setGeoJsonPointData] = useState<
+    GeoJsonPointFeature[]
+  >([]);
   const [line, setLine] = useState<LineType[]>([]);
   const [isPlacingMarker, setIsPlacingMarker] = useState(false);
   const [isDrawingLine, setIsDrawingLine] = useState(false);
 
   const handleMapClick = (e: any) => {
     if (!isPlacingMarker && !isDrawingLine) return;
+    const latitude = e.lngLat.lat;
+    const longitude = e.lngLat.lng;
     if (isPlacingMarker) {
-      geoJsonPointData.push();
-      setMarker((marker) => [
-        ...marker,
+      setGeoJsonPointData((geoJsonPointData) => [
+        ...geoJsonPointData,
         {
-          latitude: e.lngLat.lat,
-          longitude: e.lngLat.lng,
+          type: "Feature",
+          properties: {},
+          geometry: {
+            coordinates: [latitude, longitude],
+            type: "Point",
+          },
         },
       ]);
     }
@@ -113,13 +122,13 @@ const MapComponent: React.FC = () => {
         }}
         onClick={handleMapClick}
       >
-        {marker[0] &&
-          marker.map((coordinate, index) => {
+        {geoJsonPointData[0] &&
+          geoJsonPointData.map((element, index) => {
             return (
               <Marker
                 key={`marker_${index + 1}`}
-                latitude={coordinate.latitude}
-                longitude={coordinate.longitude}
+                latitude={element.geometry.coordinates[0]}
+                longitude={element.geometry.coordinates[1]}
                 color="red"
               ></Marker>
             );
@@ -145,20 +154,3 @@ const MapComponent: React.FC = () => {
 };
 
 export default MapComponent;
-
-// {
-//   "type": "FeatureCollection",
-//   "features": [
-//     {
-//       "type": "Feature",
-//       "properties": {},
-//       "geometry": {
-//         "coordinates": [
-//           26.05097336785974,
-//           11.855898395071577
-//         ],
-//         "type": "Point"
-//       }
-//     }
-//   ]
-// }
